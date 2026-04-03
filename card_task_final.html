@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Card Identification Task</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --red: #e85555;
+    --blue: #4a90e2;
+    --green: #4caf7d;
+    --gold: #f0c060;
+    --white: #ffffff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow-x:hidden; }
+
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'DM Mono', monospace;
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column;
+    align-items:center; padding:20px 16px 40px;
+  }
+
+  .screen { display:none; width:100%; max-width:520px; flex-direction:column; gap:20px; animation:fadeIn .35s ease; }
+  .screen.active { display:flex; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Typography */
+  .chip { display:inline-block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); border:1px solid var(--border); padding:5px 12px; border-radius:100px; }
+  h1 { font-family:'Fraunces',serif; font-size:clamp(26px,6vw,36px); font-weight:300; line-height:1.2; color:var(--white); }
+  h2 { font-family:'Fraunces',serif; font-size:clamp(22px,5vw,28px); font-weight:300; color:var(--white); }
+  p { font-size:clamp(12px,3vw,14px); line-height:1.75; color:var(--muted); }
+  label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+
+  /* Surfaces */
+  .card-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; }
+  .divider { height:1px; background:var(--border); width:100%; }
+  .field { display:flex; flex-direction:column; gap:8px; }
+
+  /* Buttons */
+  .btn { font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; padding:16px 28px; border-radius:10px; border:none; cursor:pointer; transition:transform .1s; touch-action:manipulation; user-select:none; }
+  .btn:active { transform:scale(0.96); }
+  .btn-primary { background:var(--text); color:var(--bg); font-weight:500; width:100%; padding:18px; font-size:13px; }
+  .btn-outline { background:transparent; color:var(--text); border:1px solid var(--border); width:100%; padding:16px; }
+  .btn-row { display:flex; gap:10px; width:100%; }
+  .btn-row .btn { flex:1; }
+  .export-btn { background:var(--surface2); color:var(--muted); border:1px dashed var(--border); font-size:11px; }
+
+  /* Response buttons */
+  .response-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; }
+  .btn-response {
+    font-family:'DM Mono',monospace; font-size:clamp(14px,4vw,18px); font-weight:500;
+    letter-spacing:1px; padding:32px 12px; border-radius:16px; border:none; color:white;
+    cursor:pointer; touch-action:manipulation; user-select:none;
+    transition:transform .1s, filter .15s;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .btn-response:active { transform:scale(0.94); filter:brightness(1.2); }
+  .btn-response .icon { font-size:32px; }
+  .btn-red-resp { background:linear-gradient(145deg,#e85555,#c03030); }
+  .btn-blue-resp { background:linear-gradient(145deg,#4a90e2,#2060b0); }
+
+  /* Group selection */
+  .group-select { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .group-btn { padding:16px 10px; background:var(--surface2); border:2px solid var(--border); border-radius:12px; cursor:pointer; text-align:center; transition:border-color .2s; touch-action:manipulation; }
+  .group-btn.selected { border-color:var(--text); background:var(--surface); }
+  .group-btn .glabel { font-size:clamp(16px,4vw,20px); font-family:'Fraunces',serif; color:var(--white); margin-bottom:4px; }
+  .group-btn .gdesc { font-size:10px; color:var(--muted); line-height:1.4; }
+
+  input[type=text], input[type=number] {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:14px 16px; color:var(--text);
+    font-family:'DM Mono',monospace; font-size:14px; outline:none;
+    appearance:none; -webkit-appearance:none;
+  }
+  input:focus { border-color:var(--muted); }
+
+  /* Task screen */
+  #task-screen { align-items:center; gap:16px; }
+
+  .progress-wrap { width:100%; display:flex; flex-direction:column; gap:8px; }
+  .progress-meta { display:flex; justify-content:space-between; font-size:10px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
+  .progress-bar-bg { width:100%; height:4px; background:var(--surface2); border-radius:100px; overflow:hidden; }
+  .progress-bar-fill { height:100%; background:var(--text); border-radius:100px; transition:width .3s ease; }
+
+  /* Live timer */
+  .live-timer {
+    font-family:'Fraunces',serif;
+    font-size:clamp(13px,3vw,15px);
+    color:var(--muted);
+    letter-spacing:1px;
+  }
+  .live-timer span { color:var(--gold); }
+
+  .card-arena { width:100%; display:flex; align-items:center; justify-content:center; padding:8px 0; }
+  .card-display {
+    width:min(200px,55vw); height:min(270px,72vw);
+    border-radius:20px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-size:clamp(20px,5vw,28px); font-weight:300;
+    color:white; box-shadow:0 16px 48px rgba(0,0,0,.5);
+    position:relative; overflow:hidden;
+  }
+  .card-display::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%); }
+  .card-display.red-card { background:linear-gradient(145deg,#e85555,#c03030); }
+  .card-display.blue-card { background:linear-gradient(145deg,#4a90e2,#2060b0); }
+  .card-display.waiting { background:var(--surface2); border:2px dashed var(--border); box-shadow:none; color:var(--muted); font-size:13px; font-family:'DM Mono',monospace; }
+
+  .feedback-flash { font-size:13px; min-height:22px; letter-spacing:1px; text-align:center; }
+  .feedback-flash.correct { color:var(--green); }
+  .feedback-flash.wrong { color:var(--red); }
+
+  /* Stats grid */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+  .stats-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; width:100%; }
+  .stat-box { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .stat-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .stat-value { font-family:'Fraunces',serif; font-size:clamp(20px,6vw,30px); font-weight:300; color:var(--white); }
+  .stat-unit { font-size:10px; color:var(--muted); }
+
+  /* Round complete banner */
+  .round-complete-banner {
+    background:linear-gradient(135deg,rgba(76,175,125,.12),rgba(76,175,125,.04));
+    border:1px solid rgba(76,175,125,.3);
+    border-radius:14px; padding:20px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .round-complete-banner .tag { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--green); }
+  .round-complete-banner h3 { font-family:'Fraunces',serif; font-weight:300; color:var(--white); font-size:20px; }
+
+  /* Researcher notice */
+  .researcher-notice {
+    background:rgba(240,192,96,.08);
+    border:1px solid rgba(240,192,96,.25);
+    border-radius:12px; padding:16px 18px;
+  }
+  .researcher-notice .tag { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
+  .researcher-notice p { font-size:12px; color:#c8c8a0; line-height:1.7; }
+
+  /* Results table */
+  .results-table-wrap { overflow-x:auto; width:100%; }
+  table { width:100%; border-collapse:collapse; font-size:clamp(11px,2.8vw,13px); }
+  th { text-align:left; padding:10px 12px; color:var(--muted); font-weight:400; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  td { padding:12px; border-bottom:1px solid var(--border); color:var(--text); }
+  tr:last-child td { border-bottom:none; }
+  .highlight-pos { color:var(--green) !important; font-weight:500; }
+  .highlight-neg { color:var(--red) !important; font-weight:500; }
+  .highlight-gold { color:var(--gold) !important; font-weight:500; }
+
+  /* Suggestion box */
+  .suggestion-box { background:linear-gradient(135deg,rgba(232,85,85,.1),rgba(232,85,85,.04)); border:1px solid rgba(232,85,85,.3); border-radius:12px; padding:18px; }
+  .suggestion-box .tag { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--red); margin-bottom:8px; }
+
+  /* Submission banner */
+  .submit-banner { padding:14px 18px; border-radius:10px; font-size:12px; line-height:1.6; display:flex; align-items:flex-start; gap:10px; }
+  .submit-banner.sending { background:rgba(240,192,96,.1); border:1px solid rgba(240,192,96,.3); color:var(--gold); }
+  .submit-banner.success { background:rgba(76,175,125,.1); border:1px solid rgba(76,175,125,.3); color:var(--green); }
+  .submit-banner.error { background:rgba(232,85,85,.1); border:1px solid rgba(232,85,85,.3); color:var(--red); }
+  .submit-banner .icon { font-size:18px; flex-shrink:0; }
+
+  .config-notice { background:rgba(240,192,96,.08); border:1px solid rgba(240,192,96,.25); border-radius:10px; padding:14px 16px; font-size:11px; color:var(--gold); line-height:1.6; }
+  .config-notice strong { display:block; margin-bottom:4px; letter-spacing:1px; text-transform:uppercase; font-size:9px; }
+
+  .status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); display:inline-block; margin-right:6px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+
+<script>
+  // ▼ PASTE YOUR GOOGLE APPS SCRIPT URL HERE ▼
+  const SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+  // ▲ ─────────────────────────────────────── ▲
+</script>
+
+<!-- ── SETUP ── -->
+<div id="setup-screen" class="screen active">
+  <div><div class="chip">Experiment #1 — Researcher Setup</div></div>
+  <h1>Card<br>Identification<br><em style="font-style:italic;color:var(--muted)">Task</em></h1>
+  <div id="url-notice"></div>
+  <div class="card-box" style="display:flex;flex-direction:column;gap:18px;">
+    <div class="field">
+      <label>Participant ID</label>
+      <input type="text" id="participant-id" placeholder="e.g. P001" />
+    </div>
+    <div class="field">
+      <label>Assign Group</label>
+      <div class="group-select">
+        <div class="group-btn" id="btn-group-a" onclick="selectGroup('A')">
+          <div class="glabel">Group A</div>
+          <div class="gdesc">Experimental — color suggestion</div>
+        </div>
+        <div class="group-btn" id="btn-group-b" onclick="selectGroup('B')">
+          <div class="glabel">Group B</div>
+          <div class="gdesc">Control — no suggestion</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Trials per Round</label>
+      <input type="number" id="trial-count" value="20" min="10" max="60" inputmode="numeric" />
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="startExperiment()">Begin Experiment →</button>
+</div>
+
+<!-- ── INSTRUCTIONS ── -->
+<div id="instructions-screen" class="screen">
+  <div><div class="chip">Phase 1 — Instructions</div></div>
+  <h2>Before We Begin</h2>
+  <div class="card-box">
+    <p>You will see a series of colored cards — either <span style="color:var(--red)">red</span> or <span style="color:var(--blue)">blue</span>.</p>
+    <br>
+    <p>Tap the matching color button as <strong style="color:var(--text)">quickly and accurately</strong> as you can. There will be <strong style="color:var(--text)">two rounds</strong> with a short break in between.</p>
+  </div>
+  <div id="suggestion-box-wrap"></div>
+  <button class="btn btn-primary" onclick="startRound(1)">I'm Ready — Start Round 1 →</button>
+</div>
+
+<!-- ── TASK ── -->
+<div id="task-screen" class="screen">
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="round-label">Round 1</span>
+      <span id="trial-counter">Trial 1 / 20</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="live-timer">Elapsed: <span id="live-time">0.0s</span></div>
+
+  <div class="card-arena">
+    <div class="card-display waiting" id="card-display">Get ready…</div>
+  </div>
+
+  <div class="feedback-flash" id="feedback"></div>
+
+  <div class="response-row">
+    <button class="btn-response btn-red-resp" onclick="recordResponse('red')">
+      <span class="icon">🔴</span>RED
+    </button>
+    <button class="btn-response btn-blue-resp" onclick="recordResponse('blue')">
+      <span class="icon">🔵</span>BLUE
+    </button>
+  </div>
+
+  <p style="text-align:center;font-size:11px;">Tap the correct color as fast as you can</p>
+</div>
+
+<!-- ── ROUND 1 COMPLETE ── -->
+<div id="round1-complete-screen" class="screen">
+  <div><div class="chip">Round 1 Complete</div></div>
+
+  <div class="round-complete-banner">
+    <div class="tag">✓ Round 1 Finished</div>
+    <h3>Good work — take a short break.</h3>
+  </div>
+
+  <div class="stats-grid-3" id="round1-stats"></div>
+
+  <div class="researcher-notice">
+    <div class="tag">⚙ Researcher — Next Steps</div>
+    <p>Conduct the group discussion and introduce the confounding variable now. When ready to proceed to Round 2, press the button below.</p>
+  </div>
+
+  <button class="btn btn-primary" onclick="startRound(2)">Start Round 2 →</button>
+</div>
+
+<!-- ── TASK ROUND 2 (reuses task-screen) ── -->
+
+<!-- ── RESULTS ── -->
+<div id="results-screen" class="screen">
+  <div><div class="chip">Experiment Complete</div></div>
+  <h2>Results Summary</h2>
+  <p><span class="status-dot"></span><span id="results-meta"></span></p>
+
+  <div id="submit-status"></div>
+
+  <!-- Performance comparison table -->
+  <div class="card-box">
+    <p style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Performance Comparison</p>
+    <div class="results-table-wrap">
+      <table id="results-table"></table>
+    </div>
+  </div>
+
+  <!-- Per-round stat cards -->
+  <div>
+    <p style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Round 1</p>
+    <div class="stats-grid-3" id="r1-stat-cards"></div>
+  </div>
+  <div>
+    <p style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Round 2</p>
+    <div class="stats-grid-3" id="r2-stat-cards"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn export-btn" onclick="exportCSV()">↓ Download CSV</button>
+    <button class="btn btn-outline" onclick="resetExperiment()">New Participant</button>
+  </div>
+</div>
+
+<script>
+  // ── Config check ───────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      document.getElementById('url-notice').innerHTML = `
+        <div class="config-notice">
+          <strong>⚠ Google Sheets Not Connected</strong>
+          CSV download will still work. To enable auto-submission, paste your Apps Script URL into the HTML file.
+        </div>`;
+    }
+  });
+
+  // ── State ──────────────────────────────────────────────────────
+  let group = null, participantId = '', totalTrials = 20;
+  let currentRound = 1, currentTrial = 0;
+  let cardSequence = [];
+  let trialData = { round1: [], round2: [] };
+  let roundTimes = { round1: 0, round2: 0 }; // ms
+  let cardVisible = false, cardStartTime = 0;
+  let waitTimeout = null;
+  let roundStartTime = 0;        // when first card appears
+  let liveTimerInterval = null;  // for the elapsed display
+
+  // ── Group selection ────────────────────────────────────────────
+  function selectGroup(g) {
+    group = g;
+    document.getElementById('btn-group-a').classList.toggle('selected', g === 'A');
+    document.getElementById('btn-group-b').classList.toggle('selected', g === 'B');
+  }
+
+  // ── Start experiment ───────────────────────────────────────────
+  function startExperiment() {
+    participantId = document.getElementById('participant-id').value.trim() || 'P001';
+    totalTrials = parseInt(document.getElementById('trial-count').value) || 20;
+    if (!group) { alert('Please assign a group first.'); return; }
+
+    document.getElementById('suggestion-box-wrap').innerHTML = group === 'A' ? `
+      <div class="suggestion-box">
+        <div class="tag">Researcher: Read aloud to participant</div>
+        <p>"Research has shown that the color <strong style="color:var(--red)">red</strong> tends to enhance focus and improve response accuracy in identification tasks. Keep this in mind as you complete the task."</p>
+      </div>` : '';
+
+    showScreen('instructions-screen');
+  }
+
+  // ── Card sequence ──────────────────────────────────────────────
+  function generateSequence() {
+    const half = Math.floor(totalTrials / 2);
+    cardSequence = [...Array(half).fill('red'), ...Array(totalTrials - half).fill('blue')];
+    for (let i = cardSequence.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cardSequence[i], cardSequence[j]] = [cardSequence[j], cardSequence[i]];
+    }
+  }
+
+  // ── Start a round ──────────────────────────────────────────────
+  function startRound(round) {
+    currentRound = round;
+    currentTrial = 0;
+    generateSequence();
+    document.getElementById('round-label').textContent = `Round ${round}`;
+    document.getElementById('live-time').textContent = '0.0s';
+    showScreen('task-screen');
+    setTimeout(showNextCard, 900);
+  }
+
+  // ── Live elapsed timer ─────────────────────────────────────────
+  function startLiveTimer() {
+    clearInterval(liveTimerInterval);
+    liveTimerInterval = setInterval(() => {
+      const elapsed = (performance.now() - roundStartTime) / 1000;
+      document.getElementById('live-time').textContent = elapsed.toFixed(1) + 's';
+    }, 100);
+  }
+
+  // ── Show next card ─────────────────────────────────────────────
+  function showNextCard() {
+    if (currentTrial >= totalTrials) { endRound(); return; }
+
+    const card = document.getElementById('card-display');
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = '';
+    feedback.className = 'feedback-flash';
+
+    document.getElementById('trial-counter').textContent = `Trial ${currentTrial + 1} / ${totalTrials}`;
+    document.getElementById('progress-fill').style.width = `${(currentTrial / totalTrials) * 100}%`;
+
+    card.className = 'card-display waiting';
+    card.textContent = '+';
+    cardVisible = false;
+
+    waitTimeout = setTimeout(() => {
+      // Start round timer on very first card of the round
+      if (currentTrial === 0) {
+        roundStartTime = performance.now();
+        startLiveTimer();
+      }
+      const color = cardSequence[currentTrial];
+      card.className = `card-display ${color}-card`;
+      card.textContent = color.toUpperCase();
+      cardVisible = true;
+      cardStartTime = performance.now();
+    }, 500 + Math.random() * 500);
+  }
+
+  // ── Record response ────────────────────────────────────────────
+  function recordResponse(response) {
+    if (!cardVisible) return;
+    const rt = Math.round(performance.now() - cardStartTime);
+    const correct = cardSequence[currentTrial] === response;
+
+    trialData[`round${currentRound}`].push({
+      trial: currentTrial + 1,
+      card: cardSequence[currentTrial],
+      response, correct, rt
+    });
+
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = correct ? `✓  ${rt}ms` : `✗  Wrong`;
+    feedback.className = `feedback-flash ${correct ? 'correct' : 'wrong'}`;
+
+    cardVisible = false;
+    currentTrial++;
+    clearTimeout(waitTimeout);
+    setTimeout(showNextCard, 400);
+  }
+
+  // ── End of round ───────────────────────────────────────────────
+  function endRound() {
+    clearInterval(liveTimerInterval);
+    const elapsed = Math.round(performance.now() - roundStartTime);
+    roundTimes[`round${currentRound}`] = elapsed;
+
+    // Update progress bar to 100%
+    document.getElementById('progress-fill').style.width = '100%';
+
+    if (currentRound === 1) {
+      const s = calcStats('round1');
+      document.getElementById('round1-stats').innerHTML = buildStatCards(s, elapsed);
+      showScreen('round1-complete-screen');
+    } else {
+      showResults();
+    }
+  }
+
+  // ── Build 3-column stat cards ──────────────────────────────────
+  function buildStatCards(s, elapsedMs) {
+    const secs = (elapsedMs / 1000).toFixed(1);
+    return `
+      <div class="stat-box">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-value">${s.accuracy}<span class="stat-unit">%</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Avg RT</div>
+        <div class="stat-value">${s.avgRT}<span class="stat-unit">ms</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Completion</div>
+        <div class="stat-value">${secs}<span class="stat-unit">s</span></div>
+      </div>`;
+  }
+
+  // ── Calc stats ─────────────────────────────────────────────────
+  function calcStats(key) {
+    const data = trialData[key];
+    if (!data || !data.length) return { accuracy:0, avgRT:0, correct:0, total:0 };
+    const correct = data.filter(d => d.correct).length;
+    return {
+      accuracy: Math.round((correct / data.length) * 100),
+      avgRT: Math.round(data.reduce((s,d) => s + d.rt, 0) / data.length),
+      correct, total: data.length
+    };
+  }
+
+  // ── Show final results ─────────────────────────────────────────
+  function showResults() {
+    const r1 = calcStats('round1');
+    const r2 = calcStats('round2');
+    const t1 = roundTimes.round1;
+    const t2 = roundTimes.round2;
+
+    document.getElementById('results-meta').textContent =
+      `${participantId} · Group ${group} · ${totalTrials} trials/round`;
+
+    // Differences
+    const accDiff  = r2.accuracy - r1.accuracy;
+    const rtDiff   = r2.avgRT - r1.avgRT;
+    const timeDiff = ((t2 - t1) / 1000).toFixed(1);
+
+    // Colour helpers
+    const accClass  = accDiff  > 0 ? 'highlight-pos' : accDiff  < 0 ? 'highlight-neg' : '';
+    const rtClass   = rtDiff   < 0 ? 'highlight-pos' : rtDiff   > 0 ? 'highlight-neg' : '';  // lower RT = better
+    const timeClass = timeDiff < 0 ? 'highlight-pos' : timeDiff > 0 ? 'highlight-neg' : '';
+
+    document.getElementById('results-table').innerHTML = `
+      <tr><th>Metric</th><th>Round 1</th><th>Round 2</th><th>Change</th></tr>
+      <tr>
+        <td>Accuracy</td>
+        <td>${r1.accuracy}%</td>
+        <td>${r2.accuracy}%</td>
+        <td class="${accClass}">${accDiff > 0 ? '+' : ''}${accDiff}%</td>
+      </tr>
+      <tr>
+        <td>Avg Response Time</td>
+        <td>${r1.avgRT}ms</td>
+        <td>${r2.avgRT}ms</td>
+        <td class="${rtClass}">${rtDiff > 0 ? '+' : ''}${rtDiff}ms</td>
+      </tr>
+      <tr>
+        <td>Correct Trials</td>
+        <td>${r1.correct}/${r1.total}</td>
+        <td>${r2.correct}/${r2.total}</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Completion Time</td>
+        <td>${(t1/1000).toFixed(1)}s</td>
+        <td>${(t2/1000).toFixed(1)}s</td>
+        <td class="${timeClass}">${timeDiff > 0 ? '+' : ''}${timeDiff}s</td>
+      </tr>`;
+
+    document.getElementById('r1-stat-cards').innerHTML = buildStatCards(r1, t1);
+    document.getElementById('r2-stat-cards').innerHTML = buildStatCards(r2, t2);
+
+    showScreen('results-screen');
+    submitToSheets(r1, r2, t1, t2);
+  }
+
+  // ── Google Sheets submission ───────────────────────────────────
+  async function submitToSheets(r1, r2, t1, t2) {
+    const statusEl = document.getElementById('submit-status');
+
+    if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      statusEl.innerHTML = `
+        <div class="submit-banner error">
+          <span class="icon">⚠️</span>
+          <span>Auto-submission not configured. Use CSV download to save data manually.</span>
+        </div>`;
+      return;
+    }
+
+    statusEl.innerHTML = `
+      <div class="submit-banner sending">
+        <span class="icon">⏳</span>
+        <span>Sending data to Google Sheets…</span>
+      </div>`;
+
+    const payload = {
+      participantId, group,
+      trials: [
+        ...trialData.round1.map(d => ({ ...d, round: 1 })),
+        ...trialData.round2.map(d => ({ ...d, round: 2 }))
+      ],
+      stats: {
+        round1: { ...r1, completionMs: t1 },
+        round2: { ...r2, completionMs: t2 }
+      }
+    };
+
+    try {
+      await fetch(SHEET_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      statusEl.innerHTML = `
+        <div class="submit-banner success">
+          <span class="icon">✅</span>
+          <span>Data sent to Google Sheets successfully.</span>
+        </div>`;
+    } catch {
+      statusEl.innerHTML = `
+        <div class="submit-banner error">
+          <span class="icon">❌</span>
+          <span>Could not reach Google Sheets. Please use the CSV download as backup.</span>
+        </div>`;
+    }
+  }
+
+  // ── CSV export ─────────────────────────────────────────────────
+  function exportCSV() {
+    const all = [
+      ...trialData.round1.map(d => ({ ...d, round: 1 })),
+      ...trialData.round2.map(d => ({ ...d, round: 2 }))
+    ];
+    const header = 'participant_id,group,round,trial,card_color,response,correct,response_time_ms\n';
+    const rows = all.map(d =>
+      `${participantId},${group},${d.round},${d.trial},${d.card},${d.response},${d.correct},${d.rt}`
+    ).join('\n');
+
+    const t1 = (roundTimes.round1 / 1000).toFixed(1);
+    const t2 = (roundTimes.round2 / 1000).toFixed(1);
+    const r1 = calcStats('round1');
+    const r2 = calcStats('round2');
+
+    const summary = `\n\nparticipant_id,group,round,accuracy_pct,avg_rt_ms,correct,total,completion_time_s\n` +
+      `${participantId},${group},1,${r1.accuracy},${r1.avgRT},${r1.correct},${r1.total},${t1}\n` +
+      `${participantId},${group},2,${r2.accuracy},${r2.avgRT},${r2.correct},${r2.total},${t2}`;
+
+    const blob = new Blob([header + rows + summary], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${participantId}_Group${group}.csv`;
+    a.click();
+  }
+
+  // ── Reset ──────────────────────────────────────────────────────
+  function resetExperiment() {
+    group = null;
+    trialData = { round1: [], round2: [] };
+    roundTimes = { round1: 0, round2: 0 };
+    cardVisible = false;
+    clearTimeout(waitTimeout);
+    clearInterval(liveTimerInterval);
+    document.getElementById('participant-id').value = '';
+    document.getElementById('trial-count').value = 20;
+    document.getElementById('btn-group-a').classList.remove('selected');
+    document.getElementById('btn-group-b').classList.remove('selected');
+    document.getElementById('submit-status').innerHTML = '';
+    showScreen('setup-screen');
+  }
+
+  // ── Screen switcher ────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
