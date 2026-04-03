@@ -177,9 +177,9 @@
 <body>
 
 <script>
-  // ▼ PASTE YOUR GOOGLE APPS SCRIPT URL HERE ▼
-  const SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
-  // ▲ ─────────────────────────────────────── ▲
+  // 
+  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxa7xafejQrEjWmH-e3yMbWd8uGr1f_5PDrPfFxnU8jPaKX1WWfYnajO7rEBNKHTF7zNg/exec';
+  // 
 </script>
 
 <!-- ── SETUP ── -->
@@ -314,7 +314,7 @@
 <script>
   // ── Config check ───────────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', () => {
-    if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxa7xafejQrEjWmH-e3yMbWd8uGr1f_5PDrPfFxnU8jPaKX1WWfYnajO7rEBNKHTF7zNg/exec') {
       document.getElementById('url-notice').innerHTML = `
         <div class="config-notice">
           <strong>⚠ Google Sheets Not Connected</strong>
@@ -544,7 +544,7 @@
   async function submitToSheets(r1, r2, t1, t2) {
     const statusEl = document.getElementById('submit-status');
 
-    if (!SHEET_URL || SHEET_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    if (!SHEET_URL || SHEET_URL === 'https://script.google.com/macros/s/AKfycbxa7xafejQrEjWmH-e3yMbWd8uGr1f_5PDrPfFxnU8jPaKX1WWfYnajO7rEBNKHTF7zNg/exec') {
       statusEl.innerHTML = `
         <div class="submit-banner error">
           <span class="icon">⚠️</span>
