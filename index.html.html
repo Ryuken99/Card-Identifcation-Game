@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Card Identification Task</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --red: #e85555;
+    --blue: #4a90e2;
+    --green: #4caf7d;
+    --gold: #f0c060;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 16px 32px;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 520px;
+    animation: fadeIn 0.35s ease;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Typography ── */
+  .chip {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(26px, 6vw, 36px);
+    font-weight: 300;
+    line-height: 1.2;
+    color: var(--white);
+  }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(22px, 5vw, 28px);
+    font-weight: 300;
+    color: var(--white);
+  }
+
+  p {
+    font-size: clamp(12px, 3vw, 14px);
+    line-height: 1.75;
+    color: var(--muted);
+  }
+
+  label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Cards / Surfaces ── */
+  .card-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 16px 28px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.1s;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    font-weight: 500;
+    width: 100%;
+    padding: 18px;
+    font-size: 13px;
+  }
+  .btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    width: 100%;
+    padding: 16px;
+  }
+
+  /* ── Response buttons (BIG for thumbs) ── */
+  .response-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .btn-response {
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: 500;
+    letter-spacing: 1px;
+    padding: 28px 12px;
+    border-radius: 16px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    transition: transform 0.1s, filter 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-response:active { transform: scale(0.94); filter: brightness(1.2); }
+  .btn-response .icon { font-size: 28px; }
+
+  .btn-red-resp { background: linear-gradient(145deg, #e85555, #c03030); }
+  .btn-blue-resp { background: linear-gradient(145deg, #4a90e2, #2060b0); }
+
+  /* ── Setup ── */
+  .field { display: flex; flex-direction: column; gap: 8px; }
+
+  .group-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .group-btn {
+    padding: 16px 10px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s;
+    touch-action: manipulation;
+  }
+  .group-btn.selected { border-color: var(--text); background: var(--surface); }
+  .group-btn .glabel { font-size: clamp(16px, 4vw, 20px); font-family: 'Fraunces', serif; color: var(--white); margin-bottom: 4px; }
+  .group-btn .gdesc { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input:focus { border-color: var(--muted); }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    resize: vertical;
+    min-height: 100px;
+    outline: none;
+  }
+  textarea:focus { border-color: var(--muted); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* ── Task screen ── */
+  #task-screen { align-items: center; gap: 16px; }
+
+  .progress-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--text);
+    border-radius: 100px;
+    transition: width 0.3s ease;
+  }
+
+  .card-arena {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  .card-display {
+    width: min(200px, 55vw);
+    height: min(270px, 72vw);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 300;
+    color: white;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease;
+  }
+  .card-display::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  }
+  .card-display.red-card { background: linear-gradient(145deg, #e85555, #c03030); }
+  .card-display.blue-card { background: linear-gradient(145deg, #4a90e2, #2060b0); }
+  .card-display.waiting {
+    background: var(--surface2);
+    border: 2px dashed var(--border);
+    box-shadow: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .feedback-flash {
+    font-size: 13px;
+    min-height: 22px;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .feedback-flash.correct { color: var(--green); }
+  .feedback-flash.wrong { color: var(--red); }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .stat-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-family: 'Fraunces', serif; font-size: clamp(24px, 7vw, 32px); font-weight: 300; color: var(--white); }
+  .stat-unit { font-size: 10px; color: var(--muted); }
+
+  /* ── Confound ── */
+  .timer-display {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 12vw, 56px);
+    font-weight: 300;
+    color: var(--gold);
+    text-align: center;
+  }
+
+  /* ── Results table ── */
+  .results-table-wrap { overflow-x: auto; width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: clamp(11px, 2.8vw, 13px); }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  .highlight { color: var(--gold) !important; font-weight: 500; }
+
+  /* ── Special boxes ── */
+  .suggestion-box {
+    background: linear-gradient(135deg, rgba(232,85,85,0.1), rgba(232,85,85,0.04));
+    border: 1px solid rgba(232,85,85,0.3);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .suggestion-box .tag { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--red); margin-bottom: 8px; }
+
+  .confound-box {
+    background: linear-gradient(135deg, rgba(240,192,96,0.1), rgba(240,192,96,0.04));
+    border: 1px solid rgba(240,192,96,0.3);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .confound-box .tag { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .btn-row { display: flex; gap: 10px; width: 100%; }
+  .btn-row .btn { flex: 1; }
+
+  .export-btn {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    font-size: 11px;
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SETUP ── -->
+<div id="setup-screen" class="screen active">
+  <div><div class="chip">Experiment #1 — Researcher Setup</div></div>
+  <h1>Card<br>Identification<br><em style="font-style:italic;color:var(--muted)">Task</em></h1>
+  <div class="card-box" style="display:flex;flex-direction:column;gap:18px;">
+    <div class="field">
+      <label>Participant ID</label>
+      <input type="text" id="participant-id" placeholder="e.g. P001" />
+    </div>
+    <div class="field">
+      <label>Assign Group</label>
+      <div class="group-select">
+        <div class="group-btn" id="btn-group-a" onclick="selectGroup('A')">
+          <div class="glabel">Group A</div>
+          <div class="gdesc">Experimental — color suggestion</div>
+        </div>
+        <div class="group-btn" id="btn-group-b" onclick="selectGroup('B')">
+          <div class="glabel">Group B</div>
+          <div class="gdesc">Control — no suggestion</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Trials per Round</label>
+      <input type="number" id="trial-count" value="20" min="10" max="60" inputmode="numeric" />
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="startExperiment()">Begin Experiment →</button>
+</div>
+
+<!-- ── INSTRUCTIONS ── -->
+<div id="instructions-screen" class="screen">
+  <div><div class="chip">Phase 1 — Instructions</div></div>
+  <h2>Before We Begin</h2>
+  <div class="card-box">
+    <p>You will see a series of colored cards — either <span style="color:var(--red)">red</span> or <span style="color:var(--blue)">blue</span>.</p>
+    <br>
+    <p>Tap the matching color button as <strong style="color:var(--text)">quickly and accurately</strong> as you can. There will be two rounds with a short break in between.</p>
+  </div>
+  <div id="suggestion-box-wrap"></div>
+  <button class="btn btn-primary" onclick="goToRound1()">I Understand — Start →</button>
+</div>
+
+<!-- ── TASK ── -->
+<div id="task-screen" class="screen">
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="round-label">Round 1</span>
+      <span id="trial-counter">Trial 1 / 20</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="card-arena">
+    <div class="card-display waiting" id="card-display">Get ready…</div>
+  </div>
+
+  <div class="feedback-flash" id="feedback"></div>
+
+  <div class="response-row">
+    <button class="btn-response btn-red-resp" onclick="recordResponse('red')">
+      <span class="icon">🔴</span>RED
+    </button>
+    <button class="btn-response btn-blue-resp" onclick="recordResponse('blue')">
+      <span class="icon">🔵</span>BLUE
+    </button>
+  </div>
+
+  <p style="text-align:center;font-size:11px;">Tap the correct color as fast as you can</p>
+</div>
+
+<!-- ── INTERIM DISCUSSION ── -->
+<div id="interim-screen" class="screen">
+  <div><div class="chip">Phase 3 — Reflection</div></div>
+  <h2>Round 1 Complete</h2>
+  <div class="stats-grid" id="round1-stats"></div>
+  <div class="divider"></div>
+  <p>Before continuing, please answer these questions honestly:</p>
+  <div class="field">
+    <label>What factors do you think influenced your performance?</label>
+    <textarea id="q1" placeholder="Describe what helped or hindered you…"></textarea>
+  </div>
+  <div class="field">
+    <label>Did anything about the task conditions affect your responses?</label>
+    <textarea id="q2" placeholder="Share your observations…"></textarea>
+  </div>
+  <button class="btn btn-primary" onclick="goToConfound()">Submit & Continue →</button>
+</div>
+
+<!-- ── CONFOUND ── -->
+<div id="confound-screen" class="screen">
+  <div><div class="chip">Phase 4 — Activity Break</div></div>
+  <h2>Short Activity</h2>
+  <div class="confound-box">
+    <div class="tag">⚠ Researcher Note — Read aloud</div>
+    <p>"Research suggests that brief cognitive engagement can prime the brain and improve subsequent task performance. Please complete the following activity."</p>
+  </div>
+  <div class="card-box" style="text-align:center;gap:12px;display:flex;flex-direction:column;">
+    <p>Play a short memory or reaction game, or complete the memory exercise provided.</p>
+    <div class="timer-display" id="confound-timer">2:00</div>
+    <p style="font-size:11px;">Time remaining</p>
+  </div>
+  <button class="btn btn-primary" id="confound-btn" disabled onclick="goToRound2Intro()">Continue to Round 2 →</button>
+</div>
+
+<!-- ── ROUND 2 INTRO ── -->
+<div id="round2-intro-screen" class="screen">
+  <div><div class="chip">Phase 5 — Round 2</div></div>
+  <h2>Round 2</h2>
+  <div class="card-box">
+    <p>You will now repeat the card identification task. Same rules apply — tap the correct color as quickly and accurately as possible.</p>
+  </div>
+  <button class="btn btn-primary" onclick="startRound(2)">Start Round 2 →</button>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="results-screen" class="screen">
+  <div><div class="chip">Experiment Complete</div></div>
+  <h2>Results Summary</h2>
+  <p><span class="status-dot"></span><span id="results-meta"></span></p>
+
+  <div class="card-box">
+    <p style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Performance Comparison</p>
+    <div class="results-table-wrap">
+      <table id="results-table"></table>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="final-stats"></div>
+
+  <div class="card-box" style="display:flex;flex-direction:column;gap:14px;">
+    <p style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Discussion Responses</p>
+    <div id="discussion-display" style="display:flex;flex-direction:column;gap:14px;"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn export-btn" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn btn-outline" onclick="resetExperiment()">New Participant</button>
+  </div>
+</div>
+
+<script>
+  let group = null, participantId = '', totalTrials = 20;
+  let currentRound = 1, currentTrial = 0;
+  let cardSequence = [];
+  let trialData = { round1: [], round2: [] };
+  let cardVisible = false, cardStartTime = 0;
+  let waitTimeout = null, confoundInterval = null;
+
+  function selectGroup(g) {
+    group = g;
+    document.getElementById('btn-group-a').classList.toggle('selected', g === 'A');
+    document.getElementById('btn-group-b').classList.toggle('selected', g === 'B');
+  }
+
+  function startExperiment() {
+    participantId = document.getElementById('participant-id').value.trim() || 'P001';
+    totalTrials = parseInt(document.getElementById('trial-count').value) || 20;
+    if (!group) { alert('Please assign a group first.'); return; }
+
+    const wrap = document.getElementById('suggestion-box-wrap');
+    wrap.innerHTML = group === 'A' ? `
+      <div class="suggestion-box">
+        <div class="tag">Researcher: Read aloud to participant</div>
+        <p>"Research has shown that the color <strong style="color:var(--red)">red</strong> tends to enhance focus and improve response accuracy in identification tasks. Keep this in mind as you complete the task."</p>
+      </div>` : '';
+
+    showScreen('instructions-screen');
+  }
+
+  function goToRound1() { startRound(1); }
+
+  function generateSequence() {
+    const half = Math.floor(totalTrials / 2);
+    cardSequence = [...Array(half).fill('red'), ...Array(totalTrials - half).fill('blue')];
+    for (let i = cardSequence.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cardSequence[i], cardSequence[j]] = [cardSequence[j], cardSequence[i]];
+    }
+  }
+
+  function startRound(round) {
+    currentRound = round;
+    currentTrial = 0;
+    generateSequence();
+    document.getElementById('round-label').textContent = `Round ${round}`;
+    showScreen('task-screen');
+    setTimeout(showNextCard, 900);
+  }
+
+  function showNextCard() {
+    if (currentTrial >= totalTrials) { endRound(); return; }
+
+    const card = document.getElementById('card-display');
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = '';
+    feedback.className = 'feedback-flash';
+
+    document.getElementById('trial-counter').textContent = `Trial ${currentTrial + 1} / ${totalTrials}`;
+    document.getElementById('progress-fill').style.width = `${(currentTrial / totalTrials) * 100}%`;
+
+    card.className = 'card-display waiting';
+    card.textContent = '+';
+    cardVisible = false;
+
+    waitTimeout = setTimeout(() => {
+      const color = cardSequence[currentTrial];
+      card.className = `card-display ${color}-card`;
+      card.textContent = color.toUpperCase();
+      cardVisible = true;
+      cardStartTime = performance.now();
+    }, 500 + Math.random() * 500);
+  }
+
+  function recordResponse(response) {
+    if (!cardVisible) return;
+    const rt = Math.round(performance.now() - cardStartTime);
+    const correct = cardSequence[currentTrial] === response;
+    trialData[`round${currentRound}`].push({
+      trial: currentTrial + 1,
+      card: cardSequence[currentTrial],
+      response, correct, rt
+    });
+
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = correct ? `✓  ${rt}ms` : `✗  Wrong`;
+    feedback.className = `feedback-flash ${correct ? 'correct' : 'wrong'}`;
+
+    cardVisible = false;
+    currentTrial++;
+    clearTimeout(waitTimeout);
+    setTimeout(showNextCard, 450);
+  }
+
+  function endRound() {
+    if (currentRound === 1) {
+      const s = calcStats('round1');
+      document.getElementById('round1-stats').innerHTML = `
+        <div class="stat-box">
+          <div class="stat-label">Accuracy</div>
+          <div class="stat-value">${s.accuracy}<span class="stat-unit">%</span></div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Avg Response</div>
+          <div class="stat-value">${s.avgRT}<span class="stat-unit">ms</span></div>
+        </div>`;
+      showScreen('interim-screen');
+    } else {
+      showResults();
+    }
+  }
+
+  function goToConfound() {
+    showScreen('confound-screen');
+    let seconds = 120;
+    const btn = document.getElementById('confound-btn');
+    const timerEl = document.getElementById('confound-timer');
+
+    confoundInterval = setInterval(() => {
+      seconds--;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+      if (seconds <= 0) {
+        clearInterval(confoundInterval);
+        timerEl.textContent = '0:00';
+        timerEl.style.color = 'var(--green)';
+        btn.disabled = false;
+      }
+    }, 1000);
+  }
+
+  function goToRound2Intro() { showScreen('round2-intro-screen'); }
+
+  function calcStats(key) {
+    const data = trialData[key];
+    if (!data || !data.length) return { accuracy: 0, avgRT: 0, correct: 0, total: 0 };
+    const correct = data.filter(d => d.correct).length;
+    return {
+      accuracy: Math.round((correct / data.length) * 100),
+      avgRT: Math.round(data.reduce((s, d) => s + d.rt, 0) / data.length),
+      correct,
+      total: data.length
+    };
+  }
+
+  function showResults() {
+    const r1 = calcStats('round1'), r2 = calcStats('round2');
+    document.getElementById('results-meta').textContent =
+      `${participantId} · Group ${group} · ${totalTrials} trials/round`;
+
+    const rtDiff = r2.avgRT - r1.avgRT;
+    const accDiff = r2.accuracy - r1.accuracy;
+
+    document.getElementById('results-table').innerHTML = `
+      <tr><th>Metric</th><th>Round 1</th><th>Round 2</th><th>Change</th></tr>
+      <tr>
+        <td>Accuracy</td><td>${r1.accuracy}%</td><td>${r2.accuracy}%</td>
+        <td class="${accDiff > 0 ? 'highlight' : ''}">${accDiff > 0 ? '+' : ''}${accDiff}%</td>
+      </tr>
+      <tr>
+        <td>Avg RT</td><td>${r1.avgRT}ms</td><td>${r2.avgRT}ms</td>
+        <td class="${rtDiff < 0 ? 'highlight' : ''}">${rtDiff > 0 ? '+' : ''}${rtDiff}ms</td>
+      </tr>
+      <tr>
+        <td>Correct</td><td>${r1.correct}/${r1.total}</td><td>${r2.correct}/${r2.total}</td><td>—</td>
+      </tr>`;
+
+    document.getElementById('final-stats').innerHTML = `
+      <div class="stat-box">
+        <div class="stat-label">Group</div>
+        <div class="stat-value" style="font-size:clamp(16px,4vw,22px)">${group === 'A' ? 'Experimental' : 'Control'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Total Trials</div>
+        <div class="stat-value">${totalTrials * 2}</div>
+      </div>`;
+
+    const q1 = document.getElementById('q1').value;
+    const q2 = document.getElementById('q2').value;
+    document.getElementById('discussion-display').innerHTML = `
+      <div>
+        <p style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Q1 — Factors influencing performance</p>
+        <p style="color:var(--text);font-size:13px;line-height:1.7">${q1 || '(No response recorded)'}</p>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <p style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Q2 — Task condition observations</p>
+        <p style="color:var(--text);font-size:13px;line-height:1.7">${q2 || '(No response recorded)'}</p>
+      </div>`;
+
+    showScreen('results-screen');
+  }
+
+  function exportCSV() {
+    const all = [
+      ...trialData.round1.map(d => ({ ...d, round: 1 })),
+      ...trialData.round2.map(d => ({ ...d, round: 2 }))
+    ];
+    const header = 'participant_id,group,round,trial,card_color,response,correct,response_time_ms\n';
+    const rows = all.map(d =>
+      `${participantId},${group},${d.round},${d.trial},${d.card},${d.response},${d.correct},${d.rt}`
+    ).join('\n');
+    const q1 = (document.getElementById('q1').value || '').replace(/,/g,';').replace(/\n/g,' ');
+    const q2 = (document.getElementById('q2').value || '').replace(/,/g,';').replace(/\n/g,' ');
+    const disc = `\n\nparticipant_id,group,question,response\n${participantId},${group},Q1,"${q1}"\n${participantId},${group},Q2,"${q2}"`;
+
+    const blob = new Blob([header + rows + disc], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${participantId}_Group${group}.csv`;
+    a.click();
+  }
+
+  function resetExperiment() {
+    group = null;
+    trialData = { round1: [], round2: [] };
+    cardVisible = false;
+    clearTimeout(waitTimeout);
+    clearInterval(confoundInterval);
+    ['participant-id','q1','q2'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('trial-count').value = 20;
+    document.getElementById('confound-timer').style.color = 'var(--gold)';
+    document.getElementById('confound-timer').textContent = '2:00';
+    document.getElementById('confound-btn').disabled = true;
+    document.getElementById('btn-group-a').classList.remove('selected');
+    document.getElementById('btn-group-b').classList.remove('selected');
+    showScreen('setup-screen');
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
